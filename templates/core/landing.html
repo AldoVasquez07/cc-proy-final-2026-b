@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="text-center py-5">
+  <h1 class="display-5 fw-bold">TesisTrack</h1>
+  <p class="lead">Seguimiento centralizado de proyectos integradores y trabajos de investigación.</p>
+  <div class="d-flex gap-2 justify-content-center">
+    <a href="{% url 'usuarios:registro' %}" class="btn btn-primary btn-lg">Registrar mi institución</a>
+    <a href="{% url 'usuarios:login' %}" class="btn btn-outline-primary btn-lg">Ingresar</a>
+  </div>
+</div>
+{% endblock %}

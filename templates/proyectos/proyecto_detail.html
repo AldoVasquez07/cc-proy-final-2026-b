@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block title %}{{ proyecto.titulo }} · TesisTrack{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0">{{ proyecto.titulo }}</h4>
+  <div class="d-flex gap-2">
+    <a href="{% url 'proyectos:proyecto_update' proyecto.pk %}" class="btn btn-outline-primary">Editar</a>
+    <a href="{% url 'proyectos:proyecto_list' %}" class="btn btn-outline-secondary">Volver</a>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-md-5">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <dl class="mb-0">
+          <dt>Estudiante</dt><dd>{{ proyecto.estudiante.nombre_completo }}</dd>
+          <dt>Docente asesor</dt><dd>{{ proyecto.asesor.nombre_completo }}</dd>
+          <dt>Periodo</dt><dd>{{ proyecto.periodo.nombre }}</dd>
+          <dt>Carrera</dt><dd>{{ proyecto.carrera.nombre|default:"—" }}</dd>
+          <dt>Estado</dt>
+          <dd>{% if proyecto.estado == 'COMPLETADO' %}<span class="badge bg-success">Completado</span>{% else %}<span class="badge bg-primary">En curso</span>{% endif %}</dd>
+          <dt>Descripción</dt><dd class="mb-0">{{ proyecto.descripcion|default:"—"|linebreaksbr }}</dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-7">
+    <div class="card shadow-sm">
+      <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <strong>Hitos</strong>
+        <span class="text-muted small">Avance: {{ proyecto.progreso }}%</span>
+      </div>
+      <ul class="list-group list-group-flush">
+        {% for h in hitos %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          <div>
+            <div class="fw-semibold">{{ h.orden }}. {{ h.titulo }}</div>
+            <small class="text-muted">Límite: {{ h.fecha_limite|date:"d/m/Y" }}</small>
+          </div>
+          <span class="badge bg-{% if h.estado == 'APROBADO' %}success{% elif h.estado == 'OBSERVADO' %}warning text-dark{% elif h.estado == 'ENTREGADO' %}info text-dark{% else %}secondary{% endif %}">{{ h.get_estado_display }}</span>
+        </li>
+        {% empty %}
+        <li class="list-group-item text-muted text-center py-4">El docente asesor aún no define los hitos de este proyecto.</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}

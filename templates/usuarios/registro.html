@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block title %}Registrar institución · TesisTrack{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-7">
+    <div class="card shadow-sm">
+      <div class="card-body p-4">
+        <h4 class="mb-1">Registrar institución</h4>
+        <p class="text-muted">Crearás tu institución y tu cuenta de Coordinador Académico.</p>
+        <form method="post">
+          {% csrf_token %}
+          {% include 'includes/form_fields.html' %}
+          <button class="btn btn-primary w-100" type="submit">Crear institución</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
