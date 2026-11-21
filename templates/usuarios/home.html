@@ -36,5 +36,60 @@
     </a>
   </div>
 </div>
+{% elif user.es_docente %}
+<div class="row g-3">
+  <div class="col-md-3">
+    <a class="card shadow-sm text-decoration-none" href="{% url 'proyectos:docente_proyecto_list' %}">
+      <div class="card-body text-center"><h5 class="mb-0">Mis proyectos</h5></div>
+    </a>
+  </div>
+</div>
+{% endif %}
+{% endblock %}{% extends 'base.html' %}
+{% block title %}Panel · TesisTrack{% endblock %}
+{% block content %}
+<div class="card shadow-sm mb-4">
+  <div class="card-body">
+    <h4>Bienvenido, {{ user.nombre_completo }}</h4>
+    <p class="mb-0">Rol: <strong>{{ user.get_rol_display }}</strong> · Institución: <strong>{{ user.institucion }}</strong></p>
+  </div>
+</div>
+
+{% if user.es_coordinador %}
+<div class="row g-3">
+  <div class="col-md-3">
+    <a class="card shadow-sm text-decoration-none" href="{% url 'core:carrera_list' %}">
+      <div class="card-body text-center"><h5 class="mb-0">Carreras</h5></div>
+    </a>
+  </div>
+  <div class="col-md-3">
+    <a class="card shadow-sm text-decoration-none" href="{% url 'core:periodo_list' %}">
+      <div class="card-body text-center"><h5 class="mb-0">Periodos</h5></div>
+    </a>
+  </div>
+  <div class="col-md-3">
+    <a class="card shadow-sm text-decoration-none" href="{% url 'usuarios:docente_list' %}">
+      <div class="card-body text-center"><h5 class="mb-0">Docentes</h5></div>
+    </a>
+  </div>
+  <div class="col-md-3">
+    <a class="card shadow-sm text-decoration-none" href="{% url 'usuarios:estudiante_list' %}">
+      <div class="card-body text-center"><h5 class="mb-0">Estudiantes</h5></div>
+    </a>
+  </div>
+  <div class="col-md-3">
+    <a class="card shadow-sm text-decoration-none" href="{% url 'proyectos:proyecto_list' %}">
+      <div class="card-body text-center"><h5 class="mb-0">Proyectos</h5></div>
+    </a>
+  </div>
+</div>
+{% elif user.es_docente %}
+<div class="row g-3">
+  <div class="col-md-3">
+    <a class="card shadow-sm text-decoration-none" href="{% url 'proyectos:docente_proyecto_list' %}">
+      <div class="card-body text-center"><h5 class="mb-0">Mis proyectos</h5></div>
+    </a>
+  </div>
+</div>
 {% endif %}
 {% endblock %}

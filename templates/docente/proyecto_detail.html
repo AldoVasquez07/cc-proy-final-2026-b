@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% block title %}{{ proyecto.titulo }} · TesisTrack{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0">{{ proyecto.titulo }}</h4>
+  <a href="{% url 'proyectos:docente_proyecto_list' %}" class="btn btn-outline-secondary">Volver</a>
+</div>
+
+<div class="row g-3">
+  <div class="col-md-4">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <dl class="mb-0">
+          <dt>Estudiante</dt><dd>{{ proyecto.estudiante.nombre_completo }}</dd>
+          <dt>Correo</dt><dd>{{ proyecto.estudiante.email }}</dd>
+          <dt>Periodo</dt><dd>{{ proyecto.periodo.nombre }}</dd>
+          <dt>Carrera</dt><dd>{{ proyecto.carrera.nombre|default:"—" }}</dd>
+          <dt>Estado</dt>
+          <dd>{% if proyecto.estado == 'COMPLETADO' %}<span class="badge bg-success">Completado</span>{% else %}<span class="badge bg-primary">En curso</span>{% endif %}</dd>
+          <dt>Descripción</dt><dd class="mb-0">{{ proyecto.descripcion|default:"—"|linebreaksbr }}</dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-8">
+    <div class="card shadow-sm">
+      <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <div><strong>Hitos de entrega</strong> <span class="text-muted small ms-2">Avance: {{ proyecto.progreso }}%</span></div>
+        {% if proyecto.estado != 'COMPLETADO' %}
+        <a href="{% url 'proyectos:hito_create' proyecto.pk %}" class="btn btn-sm btn-primary">+ Nuevo hito</a>
+        {% endif %}
+      </div>
+      <ul class="list-group list-group-flush">
+        {% for h in hitos %}
+        <li class="list-group-item">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <div class="fw-semibold">{{ h.orden }}. {{ h.titulo }}</div>
+              <small class="text-muted">Límite: {{ h.fecha_limite|date:"d/m/Y" }} · Entregas: {{ h.num_entregas }}</small>
+              {% if h.descripcion %}<div class="small mt-1">{{ h.descripcion|linebreaksbr }}</div>{% endif %}
+            </div>
+            <div class="text-end">
+              <span class="badge bg-{% if h.estado == 'APROBADO' %}success{% elif h.estado == 'OBSERVADO' %}warning text-dark{% elif h.estado == 'ENTREGADO' %}info text-dark{% else %}secondary{% endif %}">{{ h.get_estado_display }}</span>
+              {% if proyecto.estado != 'COMPLETADO' %}
+              <div class="mt-2">
+                <a class="btn btn-sm btn-outline-primary" href="{% url 'proyectos:hito_update' h.pk %}">Editar</a>
+                {% if not h.num_entregas %}<a class="btn btn-sm btn-outline-danger" href="{% url 'proyectos:hito_delete' h.pk %}">Eliminar</a>{% endif %}
+              </div>
+              {% endif %}
+            </div>
+          </div>
+        </li>
+        {% empty %}
+        <li class="list-group-item text-muted text-center py-4">Aún no definiste hitos. Usa "+ Nuevo hito" para crear el primero.</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -26,9 +26,16 @@
           <li class="nav-item"><a class="nav-link" href="{% url 'usuarios:estudiante_list' %}">Estudiantes</a></li>
           <li class="nav-item"><a class="nav-link" href="{% url 'proyectos:proyecto_list' %}">Proyectos</a></li>
         </ul>
+        {% elif user.is_authenticated and user.es_docente %}
+        <ul class="navbar-nav me-auto">
+          <li class="nav-item"><a class="nav-link" href="{% url 'proyectos:docente_proyecto_list' %}">Mis proyectos</a></li>
+        </ul>
         {% else %}
         <div class="me-auto"></div>
         {% endif %}
+
+
+
         <div class="d-flex align-items-center gap-2">
           {% if user.is_authenticated %}
             <span class="text-white small">{{ user.nombre_completo }}</span>
