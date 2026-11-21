@@ -1,0 +1,8 @@
+{% extends 'emails/base_email.html' %}
+{% block cuerpo %}
+<p>Hola {{ proyecto.estudiante.nombre_completo }},</p>
+<p>Tu asesor revisó el hito «{{ hito.titulo }}» del proyecto «{{ proyecto.titulo }}». Resultado: <strong>{{ resultado|upper }}</strong>{% if revision.calificacion is not None %} · Nota: <strong>{{ revision.calificacion }}</strong> / 20{% endif %}.</p>
+{% if revision.observacion %}<p style="background:#f8f9fa;padding:10px;border-left:4px solid #0d6efd;">{{ revision.observacion|linebreaksbr }}</p>{% endif %}
+{% if not revision.aprobada %}<p>Corrige las observaciones y sube una nueva versión.</p>{% endif %}
+{% endblock %}
+{% block boton %}Ver mi proyecto{% endblock %}

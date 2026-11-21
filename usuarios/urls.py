@@ -1,7 +1,7 @@
 from django.contrib.auth import views as auth_views
 from django.urls import path
 
-from . import views, views_gestion
+from . import views, views_gestion, views_password
 from .forms import LoginForm
 
 app_name = 'usuarios'
@@ -13,6 +13,12 @@ urlpatterns = [
         redirect_authenticated_user=True,
     ), name='login'),
     path('logout/', auth_views.LogoutView.as_view(), name='logout'),
+    path('password/recuperar/', views_password.RecuperarPasswordView.as_view(), name='password_reset'),
+    path('password/recuperar/enviado/', views_password.RecuperarPasswordHechoView.as_view(), name='password_reset_done'),
+    path('password/restablecer/<uidb64>/<token>/', views_password.RecuperarPasswordConfirmarView.as_view(), name='password_reset_confirm'),
+    path('password/restablecer/completo/', views_password.RecuperarPasswordCompletoView.as_view(), name='password_reset_complete'),
+    path('password/cambiar/', views_password.CambiarPasswordView.as_view(), name='password_change'),
+    path('password/cambiar/hecho/', views_password.CambiarPasswordHechoView.as_view(), name='password_change_done'),
     path('registro/', views.RegistroInstitucionView.as_view(), name='registro'),
     path('panel/', views.HomeView.as_view(), name='home'),
     path('2fa/configurar/', views.Configurar2FAView.as_view(), name='2fa_configurar'),

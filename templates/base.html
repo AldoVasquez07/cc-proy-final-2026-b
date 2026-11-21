@@ -25,20 +25,31 @@
           <li class="nav-item"><a class="nav-link" href="{% url 'usuarios:docente_list' %}">Docentes</a></li>
           <li class="nav-item"><a class="nav-link" href="{% url 'usuarios:estudiante_list' %}">Estudiantes</a></li>
           <li class="nav-item"><a class="nav-link" href="{% url 'proyectos:proyecto_list' %}">Proyectos</a></li>
+          <li class="nav-item"><a class="nav-link" href="{% url 'analitica:dashboard' %}">Panel</a></li>
         </ul>
         {% elif user.is_authenticated and user.es_docente %}
         <ul class="navbar-nav me-auto">
           <li class="nav-item"><a class="nav-link" href="{% url 'proyectos:docente_proyecto_list' %}">Mis proyectos</a></li>
+          <li class="nav-item"><a class="nav-link" href="{% url 'analitica:dashboard' %}">Panel</a></li>
+        </ul>
+        {% elif user.is_authenticated and user.es_estudiante %}
+        <ul class="navbar-nav me-auto">
+          <li class="nav-item"><a class="nav-link" href="{% url 'proyectos:estudiante_proyecto_list' %}">Mis proyectos</a></li>
+        </ul>
+        {% elif user.is_authenticated and user.is_superuser %}
+        <ul class="navbar-nav me-auto">
+          <li class="nav-item"><a class="nav-link" href="{% url 'admin:index' %}">Administración</a></li>
         </ul>
         {% else %}
-        <div class="me-auto"></div>
+        <ul class="navbar-nav me-auto">
+          <li class="nav-item"><a class="nav-link" href="{% url 'proyectos:repositorio_list' %}">Repositorio</a></li>
+        </ul>
         {% endif %}
-
-
 
         <div class="d-flex align-items-center gap-2">
           {% if user.is_authenticated %}
             <span class="text-white small">{{ user.nombre_completo }}</span>
+            {% if not user.is_superuser or user.institucion_id %}<a class="btn btn-sm btn-outline-light" href="{% url 'usuarios:password_change' %}">Contraseña</a>{% endif %}
             <form method="post" action="{% url 'usuarios:logout' %}" class="m-0">
               {% csrf_token %}
               <button class="btn btn-sm btn-outline-light" type="submit">Cerrar sesión</button>

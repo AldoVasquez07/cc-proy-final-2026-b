@@ -4,6 +4,7 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.contrib.auth.forms import PasswordChangeForm, PasswordResetForm, SetPasswordForm  # noqa: E402
 
 from core.models import Institucion, dominio_validator, Carrera
 from . import roles
@@ -157,3 +158,17 @@ class UsuarioGestionForm(BootstrapFormMixin, forms.ModelForm):
         if commit:
             user.save()
         return user
+    
+
+# ── Recuperación y cambio de contraseña (con estilos Bootstrap) ──────────
+
+class BootstrapPasswordResetForm(BootstrapFormMixin, PasswordResetForm):
+    email = forms.EmailField(label="Correo electrónico", max_length=254)
+
+
+class BootstrapSetPasswordForm(BootstrapFormMixin, SetPasswordForm):
+    pass
+
+
+class BootstrapPasswordChangeForm(BootstrapFormMixin, PasswordChangeForm):
+    pass

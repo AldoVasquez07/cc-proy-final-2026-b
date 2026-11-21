@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block title %}Subir entrega · TesisTrack{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-7">
+    <div class="card shadow-sm">
+      <div class="card-body p-4">
+        <h4 class="mb-1">Subir entrega</h4>
+        <p class="text-muted mb-3">
+          Hito: <strong>{{ hito.titulo }}</strong> · Versión {{ siguiente_version }}<br>
+          Solo PDF, máximo {{ settings_max_mb|default:"10" }} MB.
+        </p>
+        <form method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+          {% include 'includes/form_fields.html' %}
+          <div class="d-flex gap-2">
+            <button class="btn btn-primary" type="submit">Enviar entrega</button>
+            <a class="btn btn-outline-secondary" href="{{ url_cancelar }}">Cancelar</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

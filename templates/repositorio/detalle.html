@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% block title %}{{ proyecto.titulo }} · Repositorio{% endblock %}
+{% block content %}
+<a href="{% url 'proyectos:repositorio_list' %}" class="btn btn-sm btn-outline-secondary mb-3">← Volver al repositorio</a>
+<div class="card shadow-sm">
+  <div class="card-body p-4">
+    <h3>{{ proyecto.titulo }}</h3>
+    <p class="text-muted">{{ proyecto.institucion.nombre }}</p>
+    <h6 class="mt-4">Resumen</h6>
+    <p>{{ proyecto.resumen_publico|linebreaksbr }}</p>
+    <dl class="row mt-4 mb-0">
+      <dt class="col-sm-3">Autor</dt><dd class="col-sm-9">{{ proyecto.estudiante.nombre_completo }}</dd>
+      <dt class="col-sm-3">Docente asesor</dt><dd class="col-sm-9">{{ proyecto.asesor.nombre_completo }}</dd>
+      <dt class="col-sm-3">Carrera</dt><dd class="col-sm-9">{{ proyecto.carrera.nombre|default:"—" }}</dd>
+      <dt class="col-sm-3">Periodo</dt><dd class="col-sm-9">{{ proyecto.periodo.nombre }}</dd>
+      <dt class="col-sm-3">Publicado</dt><dd class="col-sm-9">{{ proyecto.fecha_publicacion|date:"d/m/Y" }}</dd>
+      {% if proyecto.constancia %}
+      <dt class="col-sm-3">Constancia</dt>
+      <dd class="col-sm-9"><a href="{% url 'proyectos:constancia_verificar' proyecto.constancia.codigo %}">Verificar autenticidad de la constancia</a></dd>
+      {% endif %}
+    </dl>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,8 @@
+{% extends 'emails/base_email.html' %}
+{% block cuerpo %}
+<p>Hola {{ proyecto.asesor.nombre_completo }},</p>
+<p><strong>{{ proyecto.estudiante.nombre_completo }}</strong> subió la <strong>versión {{ entrega.version }}</strong> del hito «{{ hito.titulo }}» del proyecto «{{ proyecto.titulo }}».</p>
+{% if entrega.comentario %}<p style="background:#f8f9fa;padding:10px;border-left:4px solid #0d6efd;">{{ entrega.comentario|linebreaksbr }}</p>{% endif %}
+<p>El hito está pendiente de tu revisión.</p>
+{% endblock %}
+{% block boton %}Revisar entrega{% endblock %}

@@ -1,20 +1,14 @@
 from django import forms
 from django.contrib.auth import get_user_model
-from django.db.models import Q
+from django.core.exceptions import ValidationError
+from django.db.models import Max, Q
+from django.utils import timezone
 
 from core.forms import BootstrapMixin
 from core.models import Carrera, PeriodoAcademico
 from usuarios import roles
 
-from .models import Proyecto
-
-
-from django.core.exceptions import ValidationError
-from django.db.models import Max
-from django.utils import timezone
-
-from .models import Hito
-
+from .models import Entrega, Hito, Proyecto, Revision
 
 Usuario = get_user_model()
 
@@ -108,3 +102,70 @@ class HitoForm(BootstrapMixin, forms.ModelForm):
             return self.instance.orden
         maximo = self.proyecto.hitos.aggregate(m=Max('orden'))['m'] or 0
         return maximo + 1
+
+    def save(self, commit=True):
+        hito = super().save(commit=False)
+        # Si el docente cambia la fecha límite, el recordatorio puede volver a enviarse.
+        if self.instance.pk and 'fecha_limite' in self.changed_data:
+            hito.alerta_enviada = False
+        if commit:
+            hito.save()
+        return hito
+
+
+class EntregaForm(BootstrapMixin, forms.ModelForm):
+    class Meta:
+        model = Entrega
+        fields = ('archivo', 'comentario')
+        labels = {'archivo': 'Archivo PDF', 'comentario': 'Comentario para tu asesor (opcional)'}
+        widgets = {
+            'archivo': forms.FileInput(attrs={'accept': 'application/pdf'}),
+            'comentario': forms.Textarea(attrs={'rows': 3}),
+        }
+
+    def clean_archivo(self):
+        archivo = self.cleaned_data['archivo']
+        cabecera = archivo.read(5)
+        archivo.seek(0)
+        if not cabecera.startswith(b'%PDF'):
+            raise ValidationError("El archivo no es un PDF válido.")
+        return archivo
+
+
+class RevisionForm(BootstrapMixin, forms.ModelForm):
+    DECISIONES = (
+        ('', '— Selecciona —'),
+        ('APROBAR', 'Aprobar hito'),
+        ('OBSERVAR', 'Devolver con observaciones'),
+    )
+    decision = forms.ChoiceField(label="Decisión", choices=DECISIONES)
+
+    field_order = ['decision', 'calificacion', 'observacion']
+
+    class Meta:
+        model = Revision
+        fields = ('calificacion', 'observacion')
+        labels = {'calificacion': 'Calificación (0 - 20)', 'observacion': 'Observaciones'}
+        widgets = {
+            'calificacion': forms.NumberInput(attrs={'step': '0.01', 'min': '0', 'max': '20'}),
+            'observacion': forms.Textarea(attrs={'rows': 5}),
+        }
+
+    def clean(self):
+        cleaned = super().clean()
+        decision = cleaned.get('decision')
+        if decision == 'APROBAR' and cleaned.get('calificacion') is None and 'calificacion' not in self.errors:
+            self.add_error('calificacion', "Ingresa la calificación para aprobar el hito.")
+        if decision == 'OBSERVAR' and not (cleaned.get('observacion') or '').strip():
+            self.add_error('observacion', "Describe las observaciones para el estudiante.")
+        return cleaned
+
+
+class PublicacionForm(forms.Form):
+    resumen_publico = forms.CharField(label="Resumen público", max_length=3000, strip=True)
+
+    def clean_resumen_publico(self):
+        resumen = self.cleaned_data['resumen_publico'].strip()
+        if len(resumen) < 30:
+            raise ValidationError("El resumen público debe tener al menos 30 caracteres.")
+        return resumen

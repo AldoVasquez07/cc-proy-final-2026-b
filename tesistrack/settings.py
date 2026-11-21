@@ -1,10 +1,10 @@
 """
 Configuración de TesisTrack (SaaS multi-tenant de seguimiento de proyectos integradores).
 
-Stack: Django 5 + Gunicorn + Whitenoise (Render) · Supabase (PostgreSQL) · Cloudinary (PDFs)
+Stack: Django 5 en Vercel (Python Functions, WSGI) · Supabase (PostgreSQL) · Cloudinary (PDFs)
        Resend/Brevo (correos) · Cron-job.org (alertas) · QuickChart (QR)
 
-Todos los secretos y valores por entorno se leen con python-decouple (.env / variables de Render).
+Todos los secretos y valores por entorno se leen con python-decouple (.env / variables de entorno de Vercel).
 Nunca escribir claves directamente en este archivo.
 """
 
@@ -27,29 +27,36 @@ DEBUG = config('DEBUG', default=False, cast=bool)
 
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=Csv())
 
-# Render inyecta automáticamente RENDER_EXTERNAL_HOSTNAME (ej: tesistrack.onrender.com)
-RENDER_EXTERNAL_HOSTNAME = config('RENDER_EXTERNAL_HOSTNAME', default='')
-if RENDER_EXTERNAL_HOSTNAME:
-    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
+# Vercel define VERCEL=1 y expone los hosts del despliegue (sin esquema) como variables de sistema.
+ON_VERCEL = config('VERCEL', default=False, cast=bool)
+_hosts_vercel = [
+    h for h in (
+        config('VERCEL_URL', default=''),
+        config('VERCEL_BRANCH_URL', default=''),
+        config('VERCEL_PROJECT_PRODUCTION_URL', default=''),
+    ) if h
+]
+if ON_VERCEL:
+    ALLOWED_HOSTS.append('.vercel.app')
+ALLOWED_HOSTS.extend(h for h in _hosts_vercel if h not in ALLOWED_HOSTS)
 
 # Django 4+ exige el esquema (https://) en los orígenes de confianza para CSRF.
 CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default='', cast=Csv())
-if RENDER_EXTERNAL_HOSTNAME:
-    CSRF_TRUSTED_ORIGINS.append(f'https://{RENDER_EXTERNAL_HOSTNAME}')
+CSRF_TRUSTED_ORIGINS.extend(f'https://{h}' for h in _hosts_vercel)
 
 # ══════════════════════════════════════════════════════════════
 # 3. APLICACIONES
 # ══════════════════════════════════════════════════════════════
 INSTALLED_APPS = [
-    # cloudinary_storage debe ir ANTES de django.contrib.staticfiles
-    'cloudinary_storage',
-
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    # Va DESPUÉS de staticfiles: los estáticos los sirve Whitenoise y, si va antes, su comando
+    # `collectstatic` (pensado para estáticos en Cloudinary) no copia los archivos y el build falla.
+    'cloudinary_storage',
 
     # Terceros
     'cloudinary',
@@ -114,12 +121,13 @@ DATABASES = {
         'PASSWORD': config('DB_PASSWORD'),
         'HOST': config('DB_HOST'),
         'PORT': config('DB_PORT', default='5432'),
-        'CONN_MAX_AGE': config('DB_CONN_MAX_AGE', default=60, cast=int),
+        # En serverless cada invocación abre/cierra su conexión (el pooler de Supabase las reutiliza).
+        'CONN_MAX_AGE': config('DB_CONN_MAX_AGE', default=0 if ON_VERCEL else 60, cast=int),
         'OPTIONS': {
             'sslmode': config('DB_SSLMODE', default='require'),  # Supabase exige SSL
         },
-        # Necesario si usas el pooler de Supabase en modo "transaction" (puerto 6543)
-        'DISABLE_SERVER_SIDE_CURSORS': config('DB_DISABLE_SERVER_SIDE_CURSORS', default=False, cast=bool),
+        # Necesario con el pooler de Supabase en modo "transaction" (puerto 6543)
+        'DISABLE_SERVER_SIDE_CURSORS': config('DB_DISABLE_SERVER_SIDE_CURSORS', default=ON_VERCEL, cast=bool),
     }
 }
 
@@ -170,8 +178,9 @@ USE_TZ = True
 
 # ══════════════════════════════════════════════════════════════
 # 9. ARCHIVOS ESTÁTICOS Y MULTIMEDIA
-#    - Estáticos: Whitenoise (se sirven desde el contenedor de Render)
-#    - Media (PDFs, logos): Cloudinary, porque el disco de Render es efímero
+#    - Estáticos: Vercel ejecuta collectstatic en el build y los sirve por su CDN
+#      (Whitenoise sigue activo en local y como respaldo)
+#    - Media (PDFs, logos): Cloudinary, porque el disco de Vercel es de solo lectura/efímero
 # ══════════════════════════════════════════════════════════════
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
@@ -198,8 +207,23 @@ STORAGES = {
     },
 }
 
-# Límites de subida de entregables (validar también en el formulario)
-MAX_UPLOAD_SIZE_MB = config('MAX_UPLOAD_SIZE_MB', default=10, cast=int)
+CLOUDINARY_CONFIGURADO = all(CLOUDINARY_STORAGE.values())
+
+if CLOUDINARY_CONFIGURADO:
+    STORAGES['default'] = {'BACKEND': 'cloudinary_storage.storage.RawMediaCloudinaryStorage'}
+else:
+    if ON_VERCEL:
+        from django.core.exceptions import ImproperlyConfigured
+        raise ImproperlyConfigured(
+            'Faltan CLOUDINARY_CLOUD_NAME / CLOUDINARY_API_KEY / CLOUDINARY_API_SECRET: '
+            'en Vercel no hay disco persistente para guardar los PDF.'
+        )
+    STORAGES['default'] = {'BACKEND': 'django.core.files.storage.FileSystemStorage'}
+    MEDIA_ROOT = BASE_DIR / 'media'
+
+# Límites de subida de entregables (validar también en el formulario).
+# Vercel Functions rechaza cuerpos de petición > 4.5 MB (413): por eso 4 MB por defecto allí.
+MAX_UPLOAD_SIZE_MB = config('MAX_UPLOAD_SIZE_MB', default=4 if ON_VERCEL else 10, cast=int)
 DATA_UPLOAD_MAX_MEMORY_SIZE = MAX_UPLOAD_SIZE_MB * 1024 * 1024
 FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024
 
@@ -222,17 +246,24 @@ QUICKCHART_QR_URL = config('QUICKCHART_QR_URL', default='https://quickchart.io/q
 EXTERNAL_API_TIMEOUT = config('EXTERNAL_API_TIMEOUT', default=10, cast=int)
 
 # URL pública base (para armar enlaces en correos y QR)
-SITE_URL = config('SITE_URL', default='http://localhost:8000')
+_prod_host = config('VERCEL_PROJECT_PRODUCTION_URL', default='')
+SITE_URL = config('SITE_URL', default=f'https://{_prod_host}' if _prod_host else 'http://localhost:8000')
 
-# En desarrollo, los correos de Django (si se usan) salen por consola
-if DEBUG:
+# Correos de Django (p. ej. recuperación de contraseña): por la API HTTP (Resend/Brevo).
+# En desarrollo, si no hay API key, salen por consola.
+_hay_api_key = bool(RESEND_API_KEY or BREVO_API_KEY)
+if _hay_api_key or not DEBUG:
+    EMAIL_BACKEND = 'core.email_backend.ApiEmailBackend'
+else:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+PASSWORD_RESET_TIMEOUT = 60 * 60 * 3  # enlace de recuperación válido 3 horas
 
 # ══════════════════════════════════════════════════════════════
 # 11. SEGURIDAD EN PRODUCCIÓN (se activa cuando DEBUG=False)
 # ══════════════════════════════════════════════════════════════
 if not DEBUG:
-    # Render termina TLS en su balanceador y reenvía como HTTP al contenedor
+    # Vercel termina TLS en su borde y reenvía X-Forwarded-Proto a la función
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SECURE_SSL_REDIRECT = True
 
@@ -254,7 +285,7 @@ SESSION_COOKIE_AGE = 60 * 60 * 8            # 8 horas
 SESSION_SAVE_EVERY_REQUEST = False
 
 # ══════════════════════════════════════════════════════════════
-# 12. LOGGING (Render captura stdout/stderr)
+# 12. LOGGING (Vercel captura stdout/stderr en Runtime Logs)
 # ══════════════════════════════════════════════════════════════
 LOGGING = {
     'version': 1,

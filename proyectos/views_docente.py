@@ -2,13 +2,14 @@ from django.contrib import messages
 from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
-from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
+from django.views.generic import CreateView, DeleteView, DetailView, FormView, ListView, UpdateView
 
 from core.models import PeriodoAcademico
 from usuarios.mixins import DocenteRequiredMixin
 
-from .forms import HitoForm
-from .models import Hito, Proyecto
+from .forms import HitoForm, RevisionForm
+from .models import Entrega, Hito, Proyecto
+from .services import RevisionNoPermitida, registrar_revision, verificar_cierre
 
 
 class CarteraMixin(DocenteRequiredMixin):
@@ -69,7 +70,11 @@ class CarteraDetailView(CarteraMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx['hitos'] = self.object.hitos.annotate(num_entregas=Count('entregas'))
+        ctx['hitos'] = (
+            self.object.hitos
+            .annotate(num_entregas=Count('entregas'))
+            .prefetch_related('entregas')
+        )
         return ctx
 
 
@@ -162,5 +167,85 @@ class HitoDeleteView(HitoObjetoMixin, HitoBaseMixin, DeleteView):
         if self.object.entregas.exists():
             messages.error(self.request, "No se puede eliminar un hito que ya tiene entregas.")
             return redirect(self.get_success_url())
+        proyecto = self.object.proyecto
+        response = super().form_valid(form)
+        verificar_cierre(proyecto)
         messages.success(self.request, "Hito eliminado.")
-        return super().form_valid(form)
+        return response
+
+
+# ── Revisión de entregas ─────────────────────────────────────
+class RevisionCreateView(CarteraMixin, FormView):
+    template_name = 'docente/revision_form.html'
+    form_class = RevisionForm
+
+    def get_entrega(self):
+        if not hasattr(self, '_entrega'):
+            self._entrega = get_object_or_404(
+                Entrega.objects.select_related('hito__proyecto__estudiante'),
+                pk=self.kwargs['entrega_pk'],
+                hito__proyecto__institucion=self.institucion,
+                hito__proyecto__asesor=self.request.user,
+            )
+        return self._entrega
+
+    def get_success_url(self):
+        return reverse('proyectos:docente_proyecto_detail', args=[self.get_entrega().hito.proyecto_id])
+
+    def bloqueado(self):
+        entrega = self.get_entrega()
+        hito = entrega.hito
+        mensaje = None
+        if hito.proyecto.estado != Proyecto.Estado.EN_CURSO:
+            mensaje = "El proyecto ya está completado."
+        elif hito.estado != Hito.Estado.ENTREGADO:
+            mensaje = "Este hito no está pendiente de revisión."
+        elif hito.entregas.first().pk != entrega.pk:
+            mensaje = "Existe una versión más reciente de esta entrega."
+        if mensaje:
+            messages.error(self.request, mensaje)
+            return redirect(self.get_success_url())
+        return None
+
+    def get(self, request, *args, **kwargs):
+        respuesta = self.bloqueado()
+        return respuesta if respuesta is not None else super().get(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        respuesta = self.bloqueado()
+        return respuesta if respuesta is not None else super().post(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        entrega = self.get_entrega()
+        ctx['entrega'] = entrega
+        ctx['hito'] = entrega.hito
+        ctx['proyecto'] = entrega.hito.proyecto
+        ctx['historial'] = entrega.hito.entregas.prefetch_related('revisiones__docente')
+        ctx['url_cancelar'] = self.get_success_url()
+        return ctx
+
+    def form_valid(self, form):
+        entrega = self.get_entrega()
+        aprobada = form.cleaned_data['decision'] == 'APROBAR'
+        try:
+            registrar_revision(
+                entrega=entrega,
+                docente=self.request.user,
+                observacion=form.cleaned_data['observacion'],
+                calificacion=form.cleaned_data['calificacion'],
+                aprobada=aprobada,
+            )
+        except RevisionNoPermitida as e:
+            messages.error(self.request, str(e))
+            return redirect(self.get_success_url())
+
+        proyecto = entrega.hito.proyecto
+        proyecto.refresh_from_db(fields=['estado'])
+        if proyecto.estado == Proyecto.Estado.COMPLETADO:
+            messages.success(self.request, "Hito aprobado. ¡Todos los hitos están aprobados: el proyecto quedó completado y se emitió la constancia!")
+        elif aprobada:
+            messages.success(self.request, "Hito aprobado.")
+        else:
+            messages.success(self.request, "Observaciones enviadas al estudiante.")
+        return redirect(self.get_success_url())

@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block title %}Verificación de constancia · TesisTrack{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-7">
+    {% if constancia %}
+    <div class="card shadow-sm border-success">
+      <div class="card-body p-4">
+        <div class="text-center mb-3">
+          <span class="badge bg-success fs-6">Constancia válida</span>
+        </div>
+        <dl class="mb-0">
+          <dt>Institución</dt><dd>{{ constancia.proyecto.institucion.nombre }}</dd>
+          <dt>Estudiante</dt><dd>{{ constancia.proyecto.estudiante.nombre_completo }}</dd>
+          <dt>Proyecto</dt><dd>{{ constancia.proyecto.titulo }}</dd>
+          <dt>Periodo</dt><dd>{{ constancia.proyecto.periodo.nombre }}</dd>
+          <dt>Fecha de emisión</dt><dd>{{ constancia.emitida_en|date:"d/m/Y" }}</dd>
+          <dt>Código</dt><dd class="mb-0"><code>{{ constancia.codigo }}</code></dd>
+        </dl>
+      </div>
+    </div>
+    {% else %}
+    <div class="card shadow-sm border-danger">
+      <div class="card-body p-4 text-center">
+        <span class="badge bg-danger fs-6 mb-3">Constancia no encontrada</span>
+        <p class="mb-0">El código ingresado no corresponde a ninguna constancia emitida por TesisTrack.</p>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

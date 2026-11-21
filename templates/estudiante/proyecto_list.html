@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% block title %}Mis proyectos · TesisTrack{% endblock %}
+{% block content %}
+<h4 class="mb-3">Mis proyectos</h4>
+
+<div class="row g-3">
+  {% for p in proyectos %}
+  <div class="col-md-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <h5 class="mb-0"><a href="{% url 'proyectos:estudiante_proyecto_detail' p.pk %}" class="text-decoration-none">{{ p.titulo }}</a></h5>
+          {% if p.estado == 'COMPLETADO' %}<span class="badge bg-success">Completado</span>{% else %}<span class="badge bg-primary">En curso</span>{% endif %}
+        </div>
+        <p class="text-muted small mb-2">Asesor: {{ p.asesor.nombre_completo }} · Periodo {{ p.periodo.nombre }}</p>
+        <div class="progress mb-1" style="height:8px"><div class="progress-bar" style="width:{{ p.progreso }}%"></div></div>
+        <small class="text-muted">Avance: {{ p.progreso }}%</small>
+      </div>
+      <div class="card-footer bg-white border-0 pt-0">
+        <a href="{% url 'proyectos:estudiante_proyecto_detail' p.pk %}" class="btn btn-sm btn-outline-primary">Ver y entregar avances</a>
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <div class="col-12">
+    <div class="alert alert-info mb-0">Aún no tienes un proyecto asignado. Contacta a tu coordinador académico.</div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

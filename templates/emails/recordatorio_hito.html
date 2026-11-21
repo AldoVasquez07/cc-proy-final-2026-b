@@ -1,0 +1,7 @@
+{% extends 'emails/base_email.html' %}
+{% block cuerpo %}
+<p>Hola {{ proyecto.estudiante.nombre_completo }},</p>
+<p>{% if vencido %}El plazo del hito «{{ hito.titulo }}» <strong>ya venció</strong> ({{ hito.fecha_limite|date:"d/m/Y" }}){% else %}El hito «{{ hito.titulo }}» vence el <strong>{{ hito.fecha_limite|date:"d/m/Y" }}</strong>{% endif %} en tu proyecto «{{ proyecto.titulo }}».</p>
+<p>Estado actual: {{ hito.get_estado_display }}. Sube tu entrega lo antes posible.</p>
+{% endblock %}
+{% block boton %}Subir entrega{% endblock %}

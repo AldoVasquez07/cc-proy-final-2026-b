@@ -5,8 +5,12 @@ from django.utils.text import slugify
 
 
 def logo_storage():
-    from cloudinary_storage.storage import MediaCloudinaryStorage
-    return MediaCloudinaryStorage()
+    from django.conf import settings
+    if getattr(settings, 'CLOUDINARY_CONFIGURADO', False):
+        from cloudinary_storage.storage import MediaCloudinaryStorage
+        return MediaCloudinaryStorage()
+    from django.core.files.storage import FileSystemStorage
+    return FileSystemStorage()
 
 
 dominio_validator = RegexValidator(

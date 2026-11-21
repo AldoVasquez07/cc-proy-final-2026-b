@@ -1,0 +1,6 @@
+{% extends 'emails/base_email.html' %}
+{% block cuerpo %}
+<p>¡Felicitaciones {{ proyecto.estudiante.nombre_completo }}!</p>
+<p>Todos los hitos de tu proyecto «{{ proyecto.titulo }}» fueron aprobados. El proyecto quedó <strong>completado</strong> y tu constancia de culminación ya está disponible.</p>
+{% endblock %}
+{% block boton %}Ver mi constancia{% endblock %}

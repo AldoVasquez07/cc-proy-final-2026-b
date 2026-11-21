@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+{% block title %}{{ proyecto.titulo }} · TesisTrack{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0">{{ proyecto.titulo }}</h4>
+  <a href="{% url 'proyectos:estudiante_proyecto_list' %}" class="btn btn-outline-secondary">Volver</a>
+</div>
+
+<div class="row g-3">
+  <div class="col-md-4">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <dl class="mb-0">
+          <dt>Docente asesor</dt><dd>{{ proyecto.asesor.nombre_completo }}</dd>
+          <dt>Periodo</dt><dd>{{ proyecto.periodo.nombre }}</dd>
+          <dt>Carrera</dt><dd>{{ proyecto.carrera.nombre|default:"—" }}</dd>
+          <dt>Estado</dt>
+          <dd>{% if proyecto.estado == 'COMPLETADO' %}<span class="badge bg-success">Completado</span>{% else %}<span class="badge bg-primary">En curso</span>{% endif %}</dd>
+          <dt>Avance</dt>
+          <dd class="mb-0">
+            <div class="progress" style="height:8px"><div class="progress-bar" style="width:{{ proyecto.progreso }}%"></div></div>
+            <small class="text-muted">{{ proyecto.progreso }}%</small>
+          </dd>
+        </dl>
+        {% if proyecto.estado == 'COMPLETADO' %}
+        <a href="{% url 'proyectos:constancia' proyecto.pk %}" target="_blank" class="btn btn-success btn-sm w-100 mt-3">Ver constancia</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-8">
+    {% for h in hitos %}
+    <div class="card shadow-sm mb-3">
+      <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <div>
+          <strong>{{ h.orden }}. {{ h.titulo }}</strong>
+          <div class="small text-muted">
+            Fecha límite: {{ h.fecha_limite|date:"d/m/Y" }}
+            {% if h.vencido %}<span class="badge bg-danger ms-1">Vencido</span>{% endif %}
+          </div>
+        </div>
+        <span class="badge bg-{% if h.estado == 'APROBADO' %}success{% elif h.estado == 'OBSERVADO' %}warning text-dark{% elif h.estado == 'ENTREGADO' %}info text-dark{% else %}secondary{% endif %}">{{ h.get_estado_display }}</span>
+      </div>
+      <div class="card-body">
+        {% if h.descripcion %}<p class="small">{{ h.descripcion|linebreaksbr }}</p>{% endif %}
+
+        {% if h.estado == 'OBSERVADO' %}
+        <div class="alert alert-warning py-2 small">Tu asesor dejó observaciones. Corrige y sube una nueva versión.</div>
+        {% elif h.estado == 'ENTREGADO' %}
+        <div class="alert alert-info py-2 small">Entrega enviada. Esperando la revisión de tu asesor.</div>
+        {% endif %}
+
+        {% if h.entregable %}
+        <a href="{% url 'proyectos:entrega_create' h.pk %}" class="btn btn-sm btn-primary mb-3">
+          {% if h.entregas.all %}Subir nueva versión{% else %}Subir avance{% endif %}
+        </a>
+        {% endif %}
+
+        {% for e in h.entregas.all %}
+        <div class="border rounded p-2 mb-2">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <strong>Versión {{ e.version }}</strong>
+              <span class="text-muted small">· {{ e.subido_en|date:"d/m/Y H:i" }}</span>
+            </div>
+            <a href="{% url 'proyectos:entrega_descargar' e.pk %}" class="btn btn-sm btn-outline-secondary" target="_blank">Descargar PDF</a>
+          </div>
+          {% if e.comentario %}<div class="small text-muted mt-1">Tu comentario: {{ e.comentario }}</div>{% endif %}
+
+          {% for r in e.revisiones.all %}
+          <div class="mt-2 p-2 bg-light rounded small">
+            <div class="d-flex justify-content-between">
+              <strong>{{ r.docente.nombre_completo }}</strong>
+              <span class="text-muted">{{ r.creado_en|date:"d/m/Y H:i" }}</span>
+            </div>
+            {% if r.observacion %}<div>{{ r.observacion|linebreaksbr }}</div>{% endif %}
+            <div class="mt-1">
+              {% if r.calificacion is not None %}<span class="badge bg-dark">Nota: {{ r.calificacion }}</span>{% endif %}
+              {% if r.aprobada %}<span class="badge bg-success">Aprobada</span>{% else %}<span class="badge bg-warning text-dark">Con observaciones</span>{% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% empty %}
+        <p class="text-muted small mb-0">Aún no has subido entregas para este hito.</p>
+        {% endfor %}
+      </div>
+    </div>
+    {% empty %}
+    <div class="alert alert-info">Tu asesor aún no definió los hitos de entrega de este proyecto.</div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

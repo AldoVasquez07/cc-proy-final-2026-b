@@ -19,6 +19,9 @@
           <dd>{% if proyecto.estado == 'COMPLETADO' %}<span class="badge bg-success">Completado</span>{% else %}<span class="badge bg-primary">En curso</span>{% endif %}</dd>
           <dt>Descripción</dt><dd class="mb-0">{{ proyecto.descripcion|default:"—"|linebreaksbr }}</dd>
         </dl>
+        {% if proyecto.estado == 'COMPLETADO' %}
+        <a href="{% url 'proyectos:constancia' proyecto.pk %}" target="_blank" class="btn btn-success btn-sm w-100 mt-3">Ver constancia</a>
+        {% endif %}
       </div>
     </div>
   </div>
@@ -50,6 +53,22 @@
               {% endif %}
             </div>
           </div>
+
+          {% for e in h.entregas.all %}
+          <div class="border rounded p-2 mt-2 d-flex justify-content-between align-items-center">
+            <div class="small">
+              <strong>Versión {{ e.version }}</strong>
+              <span class="text-muted">· {{ e.subido_en|date:"d/m/Y H:i" }}</span>
+              {% if e.comentario %}<div class="text-muted">{{ e.comentario }}</div>{% endif %}
+            </div>
+            <div class="d-flex gap-2">
+              <a href="{% url 'proyectos:entrega_descargar' e.pk %}" target="_blank" class="btn btn-sm btn-outline-secondary">Descargar</a>
+              {% if forloop.first and h.estado == 'ENTREGADO' and proyecto.estado == 'EN_CURSO' %}
+              <a href="{% url 'proyectos:revision_create' e.pk %}" class="btn btn-sm btn-primary">Revisar</a>
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
         </li>
         {% empty %}
         <li class="list-group-item text-muted text-center py-4">Aún no definiste hitos. Usa "+ Nuevo hito" para crear el primero.</li>

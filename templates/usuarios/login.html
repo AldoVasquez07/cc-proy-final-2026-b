@@ -13,7 +13,10 @@
           <button class="btn btn-primary w-100" type="submit">Ingresar</button>
         </form>
         <hr>
-        <a href="{% url 'usuarios:registro' %}">Registrar una institución</a>
+        <div class="d-flex justify-content-between">
+          <a href="{% url 'usuarios:password_reset' %}">¿Olvidaste tu contraseña?</a>
+          <a href="{% url 'usuarios:registro' %}">Registrar una institución</a>
+        </div>
       </div>
     </div>
   </div>

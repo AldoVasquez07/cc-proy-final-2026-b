@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+{% block title %}Panel analítico · TesisTrack{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+  <div>
+    <h4 class="mb-0">Panel analítico</h4>
+    <small class="text-muted">{% if es_global %}Vista global de la institución{% else %}Solo tu cartera de proyectos{% endif %}</small>
+  </div>
+  <form method="get" class="d-flex gap-2">
+    <select name="periodo" class="form-select" onchange="this.form.submit()">
+      <option value="">Todos los periodos</option>
+      {% for p in periodos %}<option value="{{ p.pk }}" {% if periodo_sel == p.pk|stringformat:"s" %}selected{% endif %}>{{ p.nombre }}</option>{% endfor %}
+    </select>
+  </form>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-3"><div class="card shadow-sm h-100"><div class="card-body"><div class="text-muted small">Hitos aprobados</div><div class="fs-2 fw-bold text-success">{{ panel.tasa_hitos_aprobados }}%</div><div class="small text-muted">de {{ panel.total_hitos }} hitos</div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card shadow-sm h-100"><div class="card-body"><div class="text-muted small">Revisiones aprobadas</div><div class="fs-2 fw-bold text-primary">{{ panel.tasa_revisiones_aprobadas }}%</div><div class="small text-muted">de {{ panel.total_revisiones }} revisiones</div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card shadow-sm h-100"><div class="card-body"><div class="text-muted small">Entregables pendientes</div><div class="fs-2 fw-bold text-warning">{{ panel.entregables_pendientes }}</div><div class="small text-muted">{{ panel.por_revisar }} por revisar · {{ panel.total_vencidos }} vencidos</div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card shadow-sm h-100"><div class="card-body"><div class="text-muted small">Proyectos</div><div class="fs-2 fw-bold">{{ panel.total_proyectos }}</div><div class="small text-muted">{{ panel.proyectos_por_estado.EN_CURSO }} en curso · {{ panel.proyectos_por_estado.COMPLETADO }} completados</div></div></div></div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-md-6"><div class="card shadow-sm h-100"><div class="card-header bg-white"><strong>Hitos por estado</strong></div><div class="card-body"><canvas id="graficoHitos" height="200"></canvas></div></div></div>
+  <div class="col-md-6"><div class="card shadow-sm h-100"><div class="card-header bg-white"><strong>Proyectos por estado</strong></div><div class="card-body"><canvas id="graficoProyectos" height="200"></canvas></div></div></div>
+</div>
+
+{% if es_global %}
+<div class="card shadow-sm mb-3">
+  <div class="card-header bg-white"><strong>Carga por asesor</strong></div>
+  <div class="card-body">
+    {% if panel.carga_asesores %}
+    <div class="row g-3">
+      <div class="col-lg-7"><canvas id="graficoCarga" height="160"></canvas></div>
+      <div class="col-lg-5">
+        <table class="table table-sm mb-0">
+          <thead><tr><th>Asesor</th><th class="text-end">Proyectos</th><th class="text-end">Por revisar</th></tr></thead>
+          <tbody>{% for c in panel.carga_asesores %}<tr><td>{{ c.asesor }}</td><td class="text-end">{{ c.proyectos }}</td><td class="text-end">{{ c.por_revisar }}</td></tr>{% endfor %}</tbody>
+        </table>
+      </div>
+    </div>
+    {% else %}<p class="text-muted mb-0">Aún no hay proyectos asignados.</p>{% endif %}
+  </div>
+</div>
+{% endif %}
+
+<div class="row g-3">
+  <div class="col-lg-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-header bg-white"><strong class="text-danger">Hitos vencidos</strong> <span class="badge bg-danger">{{ panel.total_vencidos }}</span></div>
+      <ul class="list-group list-group-flush">
+        {% for h in panel.vencidos %}
+        <li class="list-group-item d-flex justify-content-between">
+          <span>{{ h.titulo }}<br><small class="text-muted">{{ h.proyecto.estudiante.nombre_completo }} · {{ h.proyecto.titulo|truncatechars:40 }}</small></span>
+          <span class="text-danger small text-nowrap">{{ h.fecha_limite|date:"d/m/Y" }}</span>
+        </li>
+        {% empty %}<li class="list-group-item text-muted">Sin hitos vencidos.</li>{% endfor %}
+      </ul>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-header bg-white"><strong>Próximos vencimientos</strong> <span class="text-muted small">({{ panel.dias_proximos }} días)</span></div>
+      <ul class="list-group list-group-flush">
+        {% for h in panel.proximos %}
+        <li class="list-group-item d-flex justify-content-between">
+          <span>{{ h.titulo }}<br><small class="text-muted">{{ h.proyecto.estudiante.nombre_completo }} · {{ h.proyecto.titulo|truncatechars:40 }}</small></span>
+          <span class="small text-nowrap">{{ h.fecha_limite|date:"d/m/Y" }}</span>
+        </li>
+        {% empty %}<li class="list-group-item text-muted">Sin vencimientos próximos.</li>{% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+
+{{ graficos|json_script:"datos-graficos" }}
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script>
+  const d = JSON.parse(document.getElementById('datos-graficos').textContent);
+  const colores = ['#6c757d', '#0dcaf0', '#ffc107', '#198754'];
+  new Chart(document.getElementById('graficoHitos'), {
+    type: 'doughnut',
+    data: { labels: d.hitos.labels, datasets: [{ data: d.hitos.data, backgroundColor: colores }] },
+    options: { plugins: { legend: { position: 'bottom' } } }
+  });
+  new Chart(document.getElementById('graficoProyectos'), {
+    type: 'bar',
+    data: { labels: d.proyectos.labels, datasets: [{ label: 'Proyectos', data: d.proyectos.data, backgroundColor: ['#0d6efd', '#198754'] }] },
+    options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+  });
+  const carga = document.getElementById('graficoCarga');
+  if (carga && d.carga.labels.length) {
+    new Chart(carga, {
+      type: 'bar',
+      data: { labels: d.carga.labels, datasets: [
+        { label: 'Proyectos', data: d.carga.proyectos, backgroundColor: '#0d6efd' },
+        { label: 'Hitos por revisar', data: d.carga.por_revisar, backgroundColor: '#ffc107' }
+      ] },
+      options: { scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+    });
+  }
+</script>
+{% endblock %}
