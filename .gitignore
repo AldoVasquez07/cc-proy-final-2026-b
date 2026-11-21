@@ -1,0 +1,68 @@
+# ==========================================
+# Entornos Virtuales y Python
+# ==========================================
+venv/
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# ==========================================
+# Django & Base de Datos Local
+# ==========================================
+# Variables de entorno y secretos (NUNCA subirlos)
+.env
+.env.local
+.env.*.local
+db.sqlite3
+db.sqlite3-journal
+
+# Archivos estaticos y multimedia generados localmente
+/static_root/
+/staticfiles/
+/media/
+
+# ==========================================
+# Logs y Archivos Temporales
+# ==========================================
+*.log
+*.pot
+*.mo
+*.tmp
+*.bak
+
+# ==========================================
+# IDEs y Editores de Codigo
+# ==========================================
+# VS Code
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# PyCharm / IntelliJ
+.idea/
+
+# macOS / OS X
+.DS_Store
+.AppleDouble
+.LSSharedFileList
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# ==========================================
+# Cobertura de Pruebas / Testing
+# ==========================================
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+.tox/
+.nox/
