@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block title %}{{ titulo|default:"Formulario" }} · TesisTrack{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-7">
+    <div class="card shadow-sm">
+      <div class="card-body p-4">
+        <h4 class="mb-3">{{ titulo|default:"Formulario" }}</h4>
+        <form method="post" enctype="multipart/form-data" novalidate>
+          {% csrf_token %}
+          {% include 'includes/form_fields.html' %}
+          <div class="d-flex gap-2">
+            <button class="btn btn-primary" type="submit">Guardar</button>
+            <a class="btn btn-outline-secondary" href="{{ url_cancelar }}">Cancelar</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
