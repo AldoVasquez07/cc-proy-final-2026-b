@@ -1,5 +1,8 @@
+argon2-cffi==25.1.0
+argon2-cffi-bindings==26.2.0
 asgiref==3.13.0
 certifi==2026.11.20
+cffi==2.1.1
 charset-normalizer==3.5.2
 cloudinary==1.47.0
 colorama==0.4.6
@@ -10,6 +13,7 @@ gunicorn==27.0.1
 idna==3.20
 pillow==13.0.0
 psycopg2-binary==2.9.13
+pycparser==3.12
 python-decouple==3.8
 qrcode==8.2
 requests==2.34.2
